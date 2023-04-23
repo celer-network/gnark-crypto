@@ -28,13 +28,13 @@ import (
 
 // ProvingKey for committing and proofs of knowledge
 type ProvingKey struct {
-	basis         []curve.G1Affine
+	Basis         []curve.G1Affine
 	basisExpSigma []curve.G1Affine
 }
 
 type VerifyingKey struct {
-	g             curve.G2Affine // TODO @tabaie: does this really have to be randomized?
-	gRootSigmaNeg curve.G2Affine //gRootSigmaNeg = g^{-1/σ}
+	G             curve.G2Affine // TODO @tabaie: does this really have to be randomized?
+	GRootSigmaNeg curve.G2Affine //gRootSigmaNeg = g^{-1/σ}
 }
 
 func randomFrSizedBytes() ([]byte, error) {
@@ -53,7 +53,7 @@ func randomOnG2() (curve.G2Affine, error) { // TODO: Add to G2.go?
 
 func Setup(basis []curve.G1Affine) (pk ProvingKey, vk VerifyingKey, err error) {
 
-	if vk.g, err = randomOnG2(); err != nil {
+	if vk.G, err = randomOnG2(); err != nil {
 		return
 	}
 
@@ -68,20 +68,20 @@ func Setup(basis []curve.G1Affine) (pk ProvingKey, vk VerifyingKey, err error) {
 	var sigmaInvNeg big.Int
 	sigmaInvNeg.ModInverse(sigma, fr.Modulus())
 	sigmaInvNeg.Sub(fr.Modulus(), &sigmaInvNeg)
-	vk.gRootSigmaNeg.ScalarMultiplication(&vk.g, &sigmaInvNeg)
+	vk.GRootSigmaNeg.ScalarMultiplication(&vk.G, &sigmaInvNeg)
 
 	pk.basisExpSigma = make([]curve.G1Affine, len(basis))
 	for i := range basis {
 		pk.basisExpSigma[i].ScalarMultiplication(&basis[i], sigma)
 	}
 
-	pk.basis = basis
+	pk.Basis = basis
 	return
 }
 
 func (pk *ProvingKey) Commit(values []fr.Element) (commitment curve.G1Affine, knowledgeProof curve.G1Affine, err error) {
 
-	if len(values) != len(pk.basis) {
+	if len(values) != len(pk.Basis) {
 		err = fmt.Errorf("unexpected number of values")
 		return
 	}
@@ -92,7 +92,7 @@ func (pk *ProvingKey) Commit(values []fr.Element) (commitment curve.G1Affine, kn
 		NbTasks: 1, // TODO Experiment
 	}
 
-	if _, err = commitment.MultiExp(pk.basis, values, config); err != nil {
+	if _, err = commitment.MultiExp(pk.Basis, values, config); err != nil {
 		return
 	}
 
@@ -108,7 +108,7 @@ func (vk *VerifyingKey) Verify(commitment curve.G1Affine, knowledgeProof curve.G
 		return fmt.Errorf("subgroup check failed")
 	}
 
-	product, err := curve.Pair([]curve.G1Affine{commitment, knowledgeProof}, []curve.G2Affine{vk.g, vk.gRootSigmaNeg})
+	product, err := curve.Pair([]curve.G1Affine{commitment, knowledgeProof}, []curve.G2Affine{vk.G, vk.GRootSigmaNeg})
 	if err != nil {
 		return err
 	}
@@ -123,7 +123,7 @@ func (vk *VerifyingKey) Verify(commitment curve.G1Affine, knowledgeProof curve.G
 func (pk *ProvingKey) WriteTo(w io.Writer) (int64, error) {
 	enc := curve.NewEncoder(w)
 
-	if err := enc.Encode(pk.basis); err != nil {
+	if err := enc.Encode(pk.Basis); err != nil {
 		return enc.BytesWritten(), err
 	}
 
@@ -135,14 +135,14 @@ func (pk *ProvingKey) WriteTo(w io.Writer) (int64, error) {
 func (pk *ProvingKey) ReadFrom(r io.Reader) (int64, error) {
 	dec := curve.NewDecoder(r)
 
-	if err := dec.Decode(&pk.basis); err != nil {
+	if err := dec.Decode(&pk.Basis); err != nil {
 		return dec.BytesRead(), err
 	}
 	if err := dec.Decode(&pk.basisExpSigma); err != nil {
 		return dec.BytesRead(), err
 	}
 
-	if cL, pL := len(pk.basis), len(pk.basisExpSigma); cL != pL {
+	if cL, pL := len(pk.Basis), len(pk.basisExpSigma); cL != pL {
 		return dec.BytesRead(), fmt.Errorf("commitment basis size (%d) doesn't match proof basis size (%d)", cL, pL)
 	}
 
@@ -153,10 +153,10 @@ func (vk *VerifyingKey) WriteTo(w io.Writer) (int64, error) {
 	enc := curve.NewEncoder(w)
 	var err error
 
-	if err = enc.Encode(&vk.g); err != nil {
+	if err = enc.Encode(&vk.G); err != nil {
 		return enc.BytesWritten(), err
 	}
-	err = enc.Encode(&vk.gRootSigmaNeg)
+	err = enc.Encode(&vk.GRootSigmaNeg)
 	return enc.BytesWritten(), err
 }
 
@@ -164,9 +164,9 @@ func (vk *VerifyingKey) ReadFrom(r io.Reader) (int64, error) {
 	dec := curve.NewDecoder(r)
 	var err error
 
-	if err = dec.Decode(&vk.g); err != nil {
+	if err = dec.Decode(&vk.G); err != nil {
 		return dec.BytesRead(), err
 	}
-	err = dec.Decode(&vk.gRootSigmaNeg)
+	err = dec.Decode(&vk.GRootSigmaNeg)
 	return dec.BytesRead(), err
 }
