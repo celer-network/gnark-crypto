@@ -29,7 +29,7 @@ import (
 // ProvingKey for committing and proofs of knowledge
 type ProvingKey struct {
 	Basis         []curve.G1Affine
-	basisExpSigma []curve.G1Affine
+	BasisExpSigma []curve.G1Affine
 }
 
 type VerifyingKey struct {
@@ -70,9 +70,9 @@ func Setup(basis []curve.G1Affine) (pk ProvingKey, vk VerifyingKey, err error) {
 	sigmaInvNeg.Sub(fr.Modulus(), &sigmaInvNeg)
 	vk.GRootSigmaNeg.ScalarMultiplication(&vk.G, &sigmaInvNeg)
 
-	pk.basisExpSigma = make([]curve.G1Affine, len(basis))
+	pk.BasisExpSigma = make([]curve.G1Affine, len(basis))
 	for i := range basis {
-		pk.basisExpSigma[i].ScalarMultiplication(&basis[i], sigma)
+		pk.BasisExpSigma[i].ScalarMultiplication(&basis[i], sigma)
 	}
 
 	pk.Basis = basis
@@ -96,7 +96,7 @@ func (pk *ProvingKey) Commit(values []fr.Element) (commitment curve.G1Affine, kn
 		return
 	}
 
-	_, err = knowledgeProof.MultiExp(pk.basisExpSigma, values, config)
+	_, err = knowledgeProof.MultiExp(pk.BasisExpSigma, values, config)
 
 	return
 }
@@ -127,7 +127,7 @@ func (pk *ProvingKey) WriteTo(w io.Writer) (int64, error) {
 		return enc.BytesWritten(), err
 	}
 
-	err := enc.Encode(pk.basisExpSigma)
+	err := enc.Encode(pk.BasisExpSigma)
 
 	return enc.BytesWritten(), err
 }
@@ -138,11 +138,11 @@ func (pk *ProvingKey) ReadFrom(r io.Reader) (int64, error) {
 	if err := dec.Decode(&pk.Basis); err != nil {
 		return dec.BytesRead(), err
 	}
-	if err := dec.Decode(&pk.basisExpSigma); err != nil {
+	if err := dec.Decode(&pk.BasisExpSigma); err != nil {
 		return dec.BytesRead(), err
 	}
 
-	if cL, pL := len(pk.Basis), len(pk.basisExpSigma); cL != pL {
+	if cL, pL := len(pk.Basis), len(pk.BasisExpSigma); cL != pL {
 		return dec.BytesRead(), fmt.Errorf("commitment basis size (%d) doesn't match proof basis size (%d)", cL, pL)
 	}
 

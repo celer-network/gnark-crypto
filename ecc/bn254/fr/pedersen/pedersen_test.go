@@ -97,7 +97,7 @@ func TestCommitFiveElements(t *testing.T) {
 
 func TestMarshal(t *testing.T) {
 	var pk ProvingKey
-	pk.basisExpSigma = randomG1Slice(t, 5)
+	pk.BasisExpSigma = randomG1Slice(t, 5)
 	pk.Basis = randomG1Slice(t, 5)
 
 	var (
