@@ -39,6 +39,14 @@ type VerifyingKey struct {
 	gRootSigmaNeg curve.G2Affine //gRootSigmaNeg = g^{-1/σ}
 }
 
+func (v *VerifyingKey) GetPedersenVkG() curve.G2Affine{
+    return v.g
+}
+
+func (v *VerifyingKey) GetPedersenVkGRootSigmaNeg() curve.G2Affine {
+    return v.gRootSigmaNeg
+}
+
 func randomFrSizedBytes() ([]byte, error) {
 	res := make([]byte, fr.Bytes)
 	_, err := rand.Read(res)
