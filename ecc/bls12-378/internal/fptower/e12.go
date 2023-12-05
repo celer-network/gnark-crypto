@@ -1,4 +1,4 @@
-// Copyright 2020 ConsenSys Software Inc.
+// Copyright 2020 Consensys Software Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -36,7 +36,7 @@ type E12 struct {
 	C0, C1 E6
 }
 
-// Equal returns true if z equals x, fasle otherwise
+// Equal returns true if z equals x, false otherwise
 func (z *E12) Equal(x *E12) bool {
 	return z.C0.Equal(&x.C0) && z.C1.Equal(&x.C1)
 }
@@ -99,7 +99,7 @@ func (z *E12) SetRandom() (*E12, error) {
 	return z, nil
 }
 
-// IsZero returns true if the two elements are equal, fasle otherwise
+// IsZero returns true if the two elements are equal, false otherwise
 func (z *E12) IsZero() bool {
 	return z.C0.IsZero() && z.C1.IsZero()
 }
@@ -610,8 +610,14 @@ func (z *E12) ExpGLV(x E12, k *big.Int) *E12 {
 	s1 = s1.SetBigInt(&s[0]).Bits()
 	s2 = s2.SetBigInt(&s[1]).Bits()
 
+	maxBit := s1.BitLen()
+	if s2.BitLen() > maxBit {
+		maxBit = s2.BitLen()
+	}
+	hiWordIndex := (maxBit - 1) / 64
+
 	// loop starts from len(s1)/2 due to the bounds
-	for i := len(s1) / 2; i >= 0; i-- {
+	for i := hiWordIndex; i >= 0; i-- {
 		mask := uint64(3) << 62
 		for j := 0; j < 32; j++ {
 			res.CyclotomicSquare(&res).CyclotomicSquare(&res)
@@ -650,7 +656,7 @@ func (z *E12) Marshal() []byte {
 	return b[:]
 }
 
-// Unmarshal is an allias to SetBytes()
+// Unmarshal is an alias to SetBytes()
 func (z *E12) Unmarshal(buf []byte) error {
 	return z.SetBytes(buf)
 }
@@ -723,7 +729,7 @@ func (z *E12) SetBytes(e []byte) error {
 	return nil
 }
 
-// IsInSubGroup ensures GT/E12 is in correct sugroup
+// IsInSubGroup ensures GT/E12 is in correct subgroup
 func (z *E12) IsInSubGroup() bool {
 	var a, b E12
 

@@ -1,4 +1,4 @@
-// Copyright 2020 ConsenSys Software Inc.
+// Copyright 2020 Consensys Software Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -240,26 +240,6 @@ func TestFFT(t *testing.T) {
 
 // --------------------------------------------------------------------
 // benches
-func BenchmarkBitReverse(b *testing.B) {
-
-	const maxSize = 1 << 20
-
-	pol := make([]fr.Element, maxSize)
-	pol[0].SetRandom()
-	for i := 1; i < maxSize; i++ {
-		pol[i] = pol[i-1]
-	}
-
-	for i := 8; i < 20; i++ {
-		b.Run("bit reversing 2**"+strconv.Itoa(i)+"bits", func(b *testing.B) {
-			b.ResetTimer()
-			for j := 0; j < b.N; j++ {
-				BitReverse(pol[:1<<i])
-			}
-		})
-	}
-
-}
 
 func BenchmarkFFT(b *testing.B) {
 

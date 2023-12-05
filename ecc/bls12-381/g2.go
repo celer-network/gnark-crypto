@@ -1,4 +1,4 @@
-// Copyright 2020 ConsenSys Software Inc.
+// Copyright 2020 Consensys Software Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -66,6 +66,14 @@ func (p *G2Affine) ScalarMultiplication(a *G2Affine, s *big.Int) *G2Affine {
 	var _p G2Jac
 	_p.FromAffine(a)
 	_p.mulGLV(&_p, s)
+	p.FromJacobian(&_p)
+	return p
+}
+
+// ScalarMultiplicationBase computes and returns p = g ⋅ s where g is the prime subgroup generator
+func (p *G2Affine) ScalarMultiplicationBase(s *big.Int) *G2Affine {
+	var _p G2Jac
+	_p.mulGLV(&g2Gen, s)
 	p.FromJacobian(&_p)
 	return p
 }
@@ -173,17 +181,30 @@ func (p *G2Jac) Set(a *G2Jac) *G2Jac {
 
 // Equal tests if two points (in Jacobian coordinates) are equal
 func (p *G2Jac) Equal(a *G2Jac) bool {
-
-	if p.Z.IsZero() && a.Z.IsZero() {
-		return true
+	// If one point is infinity, the other must also be infinity.
+	if p.Z.IsZero() {
+		return a.Z.IsZero()
 	}
-	_p := G2Affine{}
-	_p.FromJacobian(p)
+	// If the other point is infinity, return false since we can't
+	// the following checks would be incorrect.
+	if a.Z.IsZero() {
+		return false
+	}
 
-	_a := G2Affine{}
-	_a.FromJacobian(a)
+	var pZSquare, aZSquare fptower.E2
+	pZSquare.Square(&p.Z)
+	aZSquare.Square(&a.Z)
 
-	return _p.X.Equal(&_a.X) && _p.Y.Equal(&_a.Y)
+	var lhs, rhs fptower.E2
+	lhs.Mul(&p.X, &aZSquare)
+	rhs.Mul(&a.X, &pZSquare)
+	if !lhs.Equal(&rhs) {
+		return false
+	}
+	lhs.Mul(&p.Y, &aZSquare).Mul(&lhs, &a.Z)
+	rhs.Mul(&a.Y, &pZSquare).Mul(&rhs, &p.Z)
+
+	return lhs.Equal(&rhs)
 }
 
 // Neg computes -G
@@ -404,8 +425,11 @@ func (p *G2Jac) mulWindowed(a *G2Jac, s *big.Int) *G2Jac {
 	var res G2Jac
 	var ops [3]G2Jac
 
-	res.Set(&g2Infinity)
 	ops[0].Set(a)
+	if s.Sign() == -1 {
+		ops[0].Neg(&ops[0])
+	}
+	res.Set(&g2Infinity)
 	ops[1].Double(&ops[0])
 	ops[2].Set(&ops[0]).AddAssign(&ops[1])
 
@@ -571,6 +595,10 @@ func (p *g2JacExtended) setInfinity() *g2JacExtended {
 	p.ZZ = fptower.E2{}
 	p.ZZZ = fptower.E2{}
 	return p
+}
+
+func (p *g2JacExtended) IsZero() bool {
+	return p.ZZ.IsZero()
 }
 
 // fromJacExtended sets Q in affine coordinates
@@ -945,7 +973,7 @@ func BatchScalarMultiplicationG2(base *G2Affine, scalars []fr.Element) []G2Affin
 					continue
 				}
 
-				// if msbWindow bit is set, we need to substract
+				// if msbWindow bit is set, we need to subtract
 				if digit&1 == 0 {
 					// add
 					p.AddAssign(&baseTable[(digit>>1)-1])

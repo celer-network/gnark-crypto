@@ -34,7 +34,7 @@ type E24 struct {
 	D0, D1 E12
 }
 
-// Equal returns true if z equals x, fasle otherwise
+// Equal returns true if z equals x, false otherwise
 func (z *E24) Equal(x *E24) bool {
 	return z.D0.Equal(&x.D0) && z.D1.Equal(&x.D1)
 }
@@ -97,7 +97,7 @@ func (z *E24) SetRandom() (*E24, error) {
 	return z, nil
 }
 
-// IsZero returns true if the two elements are equal, fasle otherwise
+// IsZero returns true if the two elements are equal, false otherwise
 func (z *E24) IsZero() bool {
 	return z.D0.IsZero() && z.D1.IsZero()
 }
@@ -521,8 +521,14 @@ func (z *E24) ExpGLV(x E24, k *big.Int) *E24 {
 	s1 = s1.SetBigInt(&s[0]).Bits()
 	s2 = s2.SetBigInt(&s[1]).Bits()
 
+	maxBit := s1.BitLen()
+	if s2.BitLen() > maxBit {
+		maxBit = s2.BitLen()
+	}
+	hiWordIndex := (maxBit - 1) / 64
+
 	// loop starts from len(s1)/2 due to the bounds
-	for i := len(s1)/2 + 1; i >= 0; i-- {
+	for i := hiWordIndex; i >= 0; i-- {
 		mask := uint64(3) << 62
 		for j := 0; j < 32; j++ {
 			res.CyclotomicSquare(&res).CyclotomicSquare(&res)
@@ -562,7 +568,7 @@ func (z *E24) Marshal() []byte {
 	return b[:]
 }
 
-// Unmarshal is an allias to SetBytes()
+// Unmarshal is an alias to SetBytes()
 func (z *E24) Unmarshal(buf []byte) error {
 	return z.SetBytes(buf)
 }
@@ -728,7 +734,7 @@ func (z *E24) SetBytes(e []byte) error {
 	return nil
 }
 
-// IsInSubGroup ensures GT/E24 is in correct sugroup
+// IsInSubGroup ensures GT/E24 is in correct subgroup
 func (z *E24) IsInSubGroup() bool {
 	var a, b E24
 

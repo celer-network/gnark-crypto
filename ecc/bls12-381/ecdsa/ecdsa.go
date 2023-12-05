@@ -1,4 +1,4 @@
-// Copyright 2020 ConsenSys Software Inc.
+// Copyright 2020 Consensys Software Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -34,6 +34,7 @@ import (
 
 const (
 	sizeFr         = fr.Bytes
+	sizeFrBits     = fr.Bits
 	sizeFp         = fp.Bytes
 	sizePublicKey  = sizeFp
 	sizePrivateKey = sizeFr + sizePublicKey
@@ -100,7 +101,7 @@ func HashToInt(hash []byte) *big.Int {
 		hash = hash[:sizeFr]
 	}
 	ret := new(big.Int).SetBytes(hash)
-	excess := len(hash)*8 - sizeFr
+	excess := ret.BitLen() - sizeFrBits
 	if excess > 0 {
 		ret.Rsh(ret, uint(excess))
 	}

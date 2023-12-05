@@ -35,7 +35,7 @@ type E6 struct {
 	B0, B1 E3
 }
 
-// Equal returns true if z equals x, fasle otherwise
+// Equal returns true if z equals x, false otherwise
 func (z *E6) Equal(x *E6) bool {
 	return z.B0.Equal(&x.B0) && z.B1.Equal(&x.B1)
 }
@@ -98,7 +98,7 @@ func (z *E6) SetRandom() (*E6, error) {
 	return z, nil
 }
 
-// IsZero returns true if the two elements are equal, fasle otherwise
+// IsZero returns true if the two elements are equal, false otherwise
 func (z *E6) IsZero() bool {
 	return z.B0.IsZero() && z.B1.IsZero()
 }
@@ -599,8 +599,14 @@ func (z *E6) ExpGLV(x E6, k *big.Int) *E6 {
 	s1 = s1.SetBigInt(&s[0]).Bits()
 	s2 = s2.SetBigInt(&s[1]).Bits()
 
+	maxBit := s1.BitLen()
+	if s2.BitLen() > maxBit {
+		maxBit = s2.BitLen()
+	}
+	hiWordIndex := (maxBit - 1) / 64
+
 	// loop starts from len(s1)/2 due to the bounds
-	for i := len(s1) / 2; i >= 0; i-- {
+	for i := hiWordIndex; i >= 0; i-- {
 		mask := uint64(3) << 62
 		for j := 0; j < 32; j++ {
 			res.CyclotomicSquare(&res).CyclotomicSquare(&res)
@@ -691,7 +697,7 @@ func (z *E6) SetBytes(e []byte) error {
 	return nil
 }
 
-// IsInSubGroup ensures GT/E6 is in correct sugroup
+// IsInSubGroup ensures GT/E6 is in correct subgroup
 func (z *E6) IsInSubGroup() bool {
 	var tmp, a, _a, b E6
 	var t [13]E6

@@ -1,4 +1,4 @@
-// Copyright 2020 ConsenSys Software Inc.
+// Copyright 2020 Consensys Software Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -35,6 +35,7 @@ import (
 
 const (
 	sizeFr         = fr.Bytes
+	sizeFrBits     = fr.Bits
 	sizeFp         = fp.Bytes
 	sizePublicKey  = 2 * sizeFp
 	sizePrivateKey = sizeFr + sizePublicKey
@@ -101,7 +102,7 @@ func HashToInt(hash []byte) *big.Int {
 		hash = hash[:sizeFr]
 	}
 	ret := new(big.Int).SetBytes(hash)
-	excess := len(hash)*8 - sizeFr
+	excess := ret.BitLen() - sizeFrBits
 	if excess > 0 {
 		ret.Rsh(ret, uint(excess))
 	}
@@ -140,20 +141,14 @@ func RecoverP(v uint, r *big.Int) (*secp256k1.G1Affine, error) {
 	if y.ModSqrt(y, fp.Modulus()) == nil {
 		return nil, errors.New("no square root")
 	}
-	// y2 is -y
-	y2 := new(big.Int).Sub(fp.Modulus(), y)
-	// if yChoice == 0, return min(y, y2), else max(y, y2)
-	if (y.Cmp(y2) < 0) == (yChoice == 0) {
-		return &secp256k1.G1Affine{
-			X: *new(fp.Element).SetBigInt(x),
-			Y: *new(fp.Element).SetBigInt(y),
-		}, nil
-	} else {
-		return &secp256k1.G1Affine{
-			X: *new(fp.Element).SetBigInt(x),
-			Y: *new(fp.Element).SetBigInt(y2),
-		}, nil
+	// check that y has same oddity as defined by v
+	if y.Bit(0) != yChoice {
+		y = y.Sub(fp.Modulus(), y)
 	}
+	return &secp256k1.G1Affine{
+		X: *new(fp.Element).SetBigInt(x),
+		Y: *new(fp.Element).SetBigInt(y),
+	}, nil
 }
 
 type zr struct{}
@@ -241,8 +236,6 @@ func (privKey *PrivateKey) Public() signature.PublicKey {
 //
 // SEC 1, Version 2.0, Section 4.1.3
 func (privKey *PrivateKey) SignForRecover(message []byte, hFunc hash.Hash) (v uint, r, s *big.Int, err error) {
-	halfp := new(big.Int).Sub(fp.Modulus(), big.NewInt(1))
-	halfp.Div(halfp, big.NewInt(2))
 	r, s = new(big.Int), new(big.Int)
 
 	scalar, kInv := new(big.Int), new(big.Int)
@@ -265,10 +258,8 @@ func (privKey *PrivateKey) SignForRecover(message []byte, hFunc hash.Hash) (v ui
 			P.X.BigInt(r)
 			// set how many times we overflow the scalar field
 			v |= (uint(new(big.Int).Div(r, order).Uint64())) << 1
-			// set if y is small or big
-			if P.Y.BigInt(new(big.Int)).Cmp(halfp) >= 0 {
-				v |= 1
-			}
+			// set if y is even or odd
+			v |= P.Y.BigInt(new(big.Int)).Bit(0)
 
 			r.Mod(r, order)
 			if r.Sign() != 0 {

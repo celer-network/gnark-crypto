@@ -1,4 +1,4 @@
-// Copyright 2020 ConsenSys Software Inc.
+// Copyright 2020 Consensys Software Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ import (
 	"github.com/consensys/gnark-crypto/ecc/bls12-378"
 	"github.com/consensys/gnark-crypto/ecc/bls12-378/fr"
 	"github.com/consensys/gnark-crypto/ecc/bls12-378/fr/fft"
-	"github.com/consensys/gnark-crypto/ecc/bls12-378/fr/kzg"
+	"github.com/consensys/gnark-crypto/ecc/bls12-378/kzg"
 	fiatshamir "github.com/consensys/gnark-crypto/fiat-shamir"
 )
 
